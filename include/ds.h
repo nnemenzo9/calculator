@@ -90,10 +90,12 @@ bool Stack<T>::empty() {
 
 /* *********************** */
 
-class Token {
-public:
+struct Token {
     char type; // contains operators + parentheses
     double value; // contains value only if type is a double, null if anything else
+    int precedence;
 };
+
+/* *********************** */
 
 #endif //UNTITLED_DS_H
