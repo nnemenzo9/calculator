@@ -37,12 +37,13 @@ double calculateFromPostfix(vector<Token> tokenArray) {
     Stack<double> stack;
 
     while (index != tokenArray.capacity()) {
-        if (tokenArray[index].type == DOUBLE) { // token is a num
-            stack.push(tokenArray[index].value);
+        Token current = tokenArray.at(index);
+        if (current.type == DOUBLE) { // token is a num
+            stack.push(current.value);
         } else { // token is not a num
             double right = stack.pop();
             double left = stack.pop();
-            switch(tokenArray[index].type) {
+            switch(current.type) {
                 case '+':
                     stack.push(left + right); // push back to stack
                     break;
@@ -72,39 +73,45 @@ double calculateFromPostfix(vector<Token> tokenArray) {
  */
 vector<Token> infixToPostfix(vector<Token> tokenArray) {
     const int MAX_PRECEDENCE = 4;
-    int index = 1;
     vector<Token> result;
     Stack<Token> stack;
 
     // parse the first token
-    if (tokenArray[0].type == DOUBLE) {
-        result.push_back(tokenArray[0]);
+    if (tokenArray.at(0).type == DOUBLE) {
+        result.push_back(tokenArray.at(0));
     } else {
-        stack.push(tokenArray[0]);
+        stack.push(tokenArray.at(0));
     }
 
     // parse all other tokens
+    int index = 1;
     while (index != tokenArray.capacity()) {
-        if (tokenArray[index].type == DOUBLE) { // token is a number
-            result.push_back(tokenArray[index]);
+        Token current = tokenArray.at(index);
+        if (current.type == DOUBLE) { // token is a number
+            result.push_back(current);
         } else { // token is not a number
             bool peekIsOpening = !stack.empty() && (stack.peek().type == '(' || stack.peek().type == '[' || stack.peek().type == '{');
             // check if closing expression, keep popping until mirror is found (first precedence level 4)
-            if (tokenArray[index].type == ')' || tokenArray[index].type == ']' || tokenArray[index].type == '}') {
+            if (current.type == ')' || current.type == ']' || current.type == '}') {
                 while (!stack.empty() && stack.peek().precedence != MAX_PRECEDENCE) {
                     result.push_back(stack.pop()); // pop to result vector
                 }
                 // by this point, stack.pop() should be at an operator of max precedence ( opening (, [, { )
                 stack.pop();
-            } else if (!stack.empty() && !peekIsOpening && (tokenArray[index].precedence <
+            } else if (!stack.empty() && !peekIsOpening && (current.precedence <
                        stack.peek().precedence)) { // if not closing expression, compare precedences
-                while (!stack.empty() && !peekIsOpening && tokenArray[index].precedence < stack.peek().precedence) {
+                while (!stack.empty() && !peekIsOpening && current.precedence < stack.peek().precedence) {
                     result.push_back(stack.pop());
                 }
-                stack.push(tokenArray[index]);
+                stack.push(current);
             } else { // operator is neither closing expression or of lower precedence
-                stack.push(tokenArray[index]);
+                stack.push(current);
             }
+        }
+        // print first thing in result for checking purposes
+        cout << "STEP: " + to_string(index) + " ";
+        if (!result.empty()) {
+            cout << result.at(0).toString();
         }
         ++index;
     }
@@ -113,6 +120,7 @@ vector<Token> infixToPostfix(vector<Token> tokenArray) {
     while (!stack.empty()) {
         result.push_back(stack.pop());
     }
+
     return result;
 }
 
@@ -137,19 +145,19 @@ vector<Token> tokenize(string input) {
         Token t;
         tokenArray.push_back(t);
         if (isdigit(input[index])) { // char at index is a digit
-            tokenArray[tokenIndex].type = DOUBLE;
+            tokenArray.at(tokenIndex).type = DOUBLE;
             while (opIndex != input.length() && isdigit(input[opIndex])) {
                 ++opIndex;
             }
             int counter = 0;
             for (int i = (opIndex - 1) - index; i >= 0; --i) {
-                tokenArray[tokenIndex].value += ((int) input[counter + index] - ASCII_NUM) * pow(BASE_10, i);
+                tokenArray.at(tokenIndex).value += ((int) input[counter + index] - ASCII_NUM) * pow(BASE_10, i);
                 ++counter;
             }
             index = opIndex;
         } else { // char at index is not digit
-            tokenArray[tokenIndex].type = input[index]; // get operator
-            tokenArray[tokenIndex].precedence = getPrecedence(tokenArray[tokenIndex].type); // add precedence to token
+            tokenArray.at(tokenIndex).type = input[index]; // get operator
+            tokenArray.at(tokenIndex).precedence = getPrecedence(tokenArray.at(tokenIndex).type); // add precedence to token
             ++index;
         }
         ++tokenIndex;
@@ -166,16 +174,21 @@ vector<Token> tokenize(string input) {
     return tokenArray;
 }
 
+
 int main() {
     string input;
-    vector<Token> tokenArray;
+    vector<Token> infix;
+    vector<Token> postfix;
 
     while (input.compare("x") != 0) {
         cout << "What expression would you like to calculate? Or enter 'x' to exit the calculator." << endl;
         getline(cin, input);
-        tokenArray = tokenize(input);
-        tokenArray = infixToPostfix(tokenArray);
-        cout << "Answer: " << calculateFromPostfix(tokenArray) << endl;
+        if (input.compare("x") != 0) {
+            // TODO: FIGURE OUT WHY DEBUG / RUN IS RETURNING DIFFERENT OUTPUT
+            infix = tokenize(input); // can we pass vectors around like this?
+            postfix = infixToPostfix(infix);
+            cout << "Answer: " << calculateFromPostfix(postfix) << endl;
+        }
     }
     return 0;
 }
