@@ -1,5 +1,6 @@
 #include <iostream>
 #include "../include/ds.h"
+#include <stack>
 
 // TODO: ERROR CHECKING
 
@@ -34,15 +35,17 @@ int getPrecedence(char c) {
  */
 double calculateFromPostfix(vector<Token> tokenArray) {
     int index = 0;
-    Stack<double> stack;
+    stack<double> stack;
 
     while (index != tokenArray.capacity()) {
         Token current = tokenArray.at(index);
         if (current.type == DOUBLE) { // token is a num
             stack.push(current.value);
         } else { // token is not a num
-            double right = stack.pop();
-            double left = stack.pop();
+            double right = stack.top();
+            stack.pop();
+            double left = stack.top();
+            stack.pop();
             switch(current.type) {
                 case '+':
                     stack.push(left + right); // push back to stack
@@ -63,7 +66,9 @@ double calculateFromPostfix(vector<Token> tokenArray) {
         index++;
     }
     // by this point, we should be returning the correct thing.
-    return stack.pop();
+    double result = stack.top();
+    stack.pop();
+    return result;
 }
 
 /**
@@ -71,10 +76,11 @@ double calculateFromPostfix(vector<Token> tokenArray) {
  * @param tokenArray: Passes in the array of tokens to be converted.
  * @return: Returns a token array in postfix notation.
  */
+
 vector<Token> infixToPostfix(vector<Token> tokenArray) {
     const int MAX_PRECEDENCE = 4;
     vector<Token> result;
-    Stack<Token> stack;
+    stack<Token> stack;
 
     // parse the first token
     if (tokenArray.at(0).type == DOUBLE) {
@@ -90,35 +96,34 @@ vector<Token> infixToPostfix(vector<Token> tokenArray) {
         if (current.type == DOUBLE) { // token is a number
             result.push_back(current);
         } else { // token is not a number
-            bool peekIsOpening = !stack.empty() && (stack.peek().type == '(' || stack.peek().type == '[' || stack.peek().type == '{');
+            bool peekIsOpening = !stack.empty() && (stack.top().type == '(' || stack.top().type == '[' || stack.top().type == '{');
             // check if closing expression, keep popping until mirror is found (first precedence level 4)
-            if (current.type == ')' || current.type == ']' || current.type == '}') {
-                while (!stack.empty() && stack.peek().precedence != MAX_PRECEDENCE) {
-                    result.push_back(stack.pop()); // pop to result vector
+            if (current.type == ')' || current.type == ']' || current.type == '}') { // token is a closing
+                while (!stack.empty() && stack.top().precedence != MAX_PRECEDENCE) {
+                    result.push_back(stack.top()); // pop to result vector
+                    stack.pop();
                 }
                 // by this point, stack.pop() should be at an operator of max precedence ( opening (, [, { )
                 stack.pop();
-            } else if (!stack.empty() && !peekIsOpening && (current.precedence <
-                       stack.peek().precedence)) { // if not closing expression, compare precedences
-                while (!stack.empty() && !peekIsOpening && current.precedence < stack.peek().precedence) {
-                    result.push_back(stack.pop());
+            } else if (!stack.empty() && !peekIsOpening && (current.precedence <=
+                       stack.top().precedence)) { // if not closing expression, compare precedences
+                while (!stack.empty() && !peekIsOpening && current.precedence <= stack.top().precedence) {
+                    result.push_back(stack.top());
+                    stack.pop();
                 }
                 stack.push(current);
-            } else { // operator is neither closing expression or of lower precedence
+            } else { // operator is neither closing expression, equal, or higher precedence
                 stack.push(current);
             }
         }
         // print first thing in result for checking purposes
-        cout << "STEP: " + to_string(index) + " ";
-        if (!result.empty()) {
-            cout << result.at(0).toString();
-        }
         ++index;
     }
 
     // push everything at end
     while (!stack.empty()) {
-        result.push_back(stack.pop());
+        result.push_back(stack.top());
+        stack.pop();
     }
 
     return result;
@@ -184,7 +189,6 @@ int main() {
         cout << "What expression would you like to calculate? Or enter 'x' to exit the calculator." << endl;
         getline(cin, input);
         if (input.compare("x") != 0) {
-            // TODO: FIGURE OUT WHY DEBUG / RUN IS RETURNING DIFFERENT OUTPUT
             infix = tokenize(input); // can we pass vectors around like this?
             postfix = infixToPostfix(infix);
             cout << "Answer: " << calculateFromPostfix(postfix) << endl;
